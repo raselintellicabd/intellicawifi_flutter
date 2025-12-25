@@ -45,6 +45,18 @@ class SmartHomeRepository {
     return _sendSetRequest("Device.Light.Remove", value);
   }
 
+  Future<bool> setDeviceColor(String hueValue) async {
+    return _sendSetRequest("Device.Light.Color", hueValue);
+  }
+
+  Future<bool> setDeviceBrightness(String value) async {
+    return _sendSetRequest("Device.Light.Level", value);
+  }
+
+  Future<bool> setDeviceSaturation(String saturation) async {
+    return _sendSetRequest("Device.Light.Saturation", saturation);
+  }
+
   Future<bool> _sendSetRequest(String name, String value) async {
     final deviceMac = await RouterMacManager.getMac();
     final req = SetParameterRequest(

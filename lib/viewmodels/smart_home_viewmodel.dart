@@ -103,6 +103,70 @@ class SmartHomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setDeviceColor(String nodeId, int hueValue, String ssid, String password) async {
+    _isOperationLoading = true;
+    notifyListeners();
+
+    try {
+      final value = "$hueValue,$nodeId,$ssid,$password";
+      final success = await _repository.setDeviceColor(value);
+      if (success) {
+        _operationResult = UiState.success("Color updated successfully");
+      } else {
+        _operationResult = UiState.error("Failed to update color");
+      }
+    } catch (e) {
+      _operationResult = UiState.error(e.toString());
+    }
+
+    _isOperationLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> setDeviceBrightness(String nodeId, int brightnessPercent, String ssid, String password) async {
+    _isOperationLoading = true;
+    notifyListeners();
+
+    try {
+      // Convert 0-100 to 0-254
+      final brightnessApi = ((brightnessPercent / 100.0) * 254).toInt().toString();
+      final value = "$brightnessApi,$nodeId,$ssid,$password";
+      final success = await _repository.setDeviceBrightness(value);
+      if (success) {
+        _operationResult = UiState.success("Brightness updated successfully");
+      } else {
+        _operationResult = UiState.error("Failed to update brightness");
+      }
+    } catch (e) {
+      _operationResult = UiState.error(e.toString());
+    }
+
+    _isOperationLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> setDeviceSaturation(String nodeId, int saturationPercent, String ssid, String password) async {
+    _isOperationLoading = true;
+    notifyListeners();
+
+    try {
+      // Convert 0-100 to 0-254
+      final saturationApi = ((saturationPercent / 100.0) * 254).toInt().toString();
+      final value = "$saturationApi,$nodeId,$ssid,$password";
+      final success = await _repository.setDeviceSaturation(value);
+      if (success) {
+        _operationResult = UiState.success("Saturation updated successfully");
+      } else {
+        _operationResult = UiState.error("Failed to update saturation");
+      }
+    } catch (e) {
+      _operationResult = UiState.error(e.toString());
+    }
+
+    _isOperationLoading = false;
+    notifyListeners();
+  }
+
   void clearOperationResult() {
     _operationResult = null;
     notifyListeners();
