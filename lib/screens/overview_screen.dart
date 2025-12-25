@@ -36,51 +36,105 @@ class _OverviewScreenState extends State<OverviewScreen> {
           )
         ],
       ),
-      body: Consumer<RouterViewModel>(
-        builder: (context, viewModel, child) {
-          final infoState = viewModel.routerInfo;
-          
-          if (infoState.status == UiStatus.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          
-          if (infoState.status == UiStatus.error) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("Error: ${infoState.message}", style: const TextStyle(color: Colors.red)),
-                  ElevatedButton(
-                    onPressed: viewModel.loadRouterInfo, 
-                    child: const Text("Retry")
-                  )
-                ],
-              ),
-            );
-          }
-          
-          final info = infoState.data!;
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Consumer<RouterViewModel>(
+              builder: (context, viewModel, child) {
+                final infoState = viewModel.routerInfo;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildInfoCard("Model", info.modelName, Icons.router),
-                const SizedBox(height: 12),
-                _buildInfoCard("Serial Number", info.serialNumber, Icons.qr_code),
-                const SizedBox(height: 12),
-                _buildInfoCard("Software Version", info.softwareVersion, Icons.system_update),
-                const SizedBox(height: 12),
-                _buildInfoCard("WAN IP", info.wanIpAddress, Icons.public),
-                const SizedBox(height: 12),
-                _buildInfoCard("Uptime", info.uptime, Icons.timer),
-                
-                const SizedBox(height: 24),
-                const Text("Quick Actions", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                
-                GridView.count(
+                if (infoState.status == UiStatus.loading) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                if (infoState.status == UiStatus.error) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                    alignment: Alignment.center,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.cloud_off_rounded,
+                            size: 48,
+                            color: Colors.red[400],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          "Connection Failed",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          infoState.message ?? "Unable to fetch router information",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: viewModel.loadRouterInfo,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text("Retry Connection"),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final info = infoState.data!;
+
+                return Column(
+                  children: [
+                    _buildInfoCard("Model", info.modelName, Icons.router),
+                    const SizedBox(height: 12),
+                    _buildInfoCard(
+                        "Serial Number", info.serialNumber, Icons.qr_code),
+                    const SizedBox(height: 12),
+                    _buildInfoCard("Software Version", info.softwareVersion,
+                        Icons.system_update),
+                    const SizedBox(height: 12),
+                    _buildInfoCard("WAN IP", info.wanIpAddress, Icons.public),
+                    const SizedBox(height: 12),
+                    _buildInfoCard("Uptime", info.uptime, Icons.timer),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            const Text("Quick Actions",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Consumer<RouterViewModel>(
+              builder: (context, viewModel, child) {
+                final isSuccess = viewModel.routerInfo.status == UiStatus.success;
+                return GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: 2,
@@ -88,39 +142,29 @@ class _OverviewScreenState extends State<OverviewScreen> {
                   mainAxisSpacing: 12,
                   childAspectRatio: 1.1,
                   children: [
-                    _buildActionCard(
-                      context, 
-                      "Connected Devices", 
-                      Icons.devices, 
-                      Colors.blue, 
-                      () => Navigator.pushNamed(context, '/connected_devices')
-                    ),
-                    _buildActionCard(
-                      context, 
-                      "Smart Home", 
-                      Icons.home_filled, 
-                      Colors.green, 
-                      () => Navigator.pushNamed(context, '/smart_home')
-                    ),
-                    _buildActionCard(
-                      context, 
-                      "Settings", 
-                      Icons.settings, 
-                      Colors.orange, 
-                      () => Navigator.pushNamed(context, '/router_settings')
-                    ),
-                    _buildActionCard(
-                       context,
-                       "Change MAC",
-                       Icons.edit,
-                       Colors.purple,
-                       () => Navigator.pushNamed(context, '/mac_address')),
+                    if (isSuccess) ...[
+                      _buildActionCard(
+                          context,
+                          "Connected Devices",
+                          Icons.devices,
+                          Colors.blue,
+                          () => Navigator.pushNamed(context, '/connected_devices')),
+                      _buildActionCard(context, "Smart Home", Icons.home_filled,
+                          Colors.green,
+                          () => Navigator.pushNamed(context, '/smart_home')),
+                      _buildActionCard(context, "Settings", Icons.settings,
+                          Colors.orange,
+                          () => Navigator.pushNamed(context, '/router_settings')),
+                    ],
+                    _buildActionCard(context, "Change MAC", Icons.edit,
+                        Colors.purple,
+                        () => Navigator.pushNamed(context, '/mac_address')),
                   ],
-                ),
-              ],
+                );
+              },
             ),
-          );
-        }, // builder
+          ],
+        ),
       ),
     );
   }
@@ -133,12 +177,14 @@ class _OverviewScreenState extends State<OverviewScreen> {
           children: [
             Icon(icon, size: 32, color: Theme.of(context).colorScheme.secondary),
             const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                  Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
             ),
           ],
         ),

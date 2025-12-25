@@ -55,51 +55,74 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Configure WiFi"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Enter WiFi details for smart devices."),
-            const SizedBox(height: 12),
-            TextField(controller: ssidController, decoration: const InputDecoration(labelText: "SSID")),
-            const SizedBox(height: 8),
-            TextField(controller: passController, decoration: const InputDecoration(labelText: "Password"), obscureText: true),
-          ],
-        ),
-        actions: [
-          TextButton(
-             onPressed: () {
-               // Allow closing only if we already have config.
-               // But original code didn't allow closing initially. 
-               // The logic below ensures it saves if valid, but if user just wants to cancel 'Settings' changes, we might want a cancel button.
-               // For now, I'll add Cancel only if _wifiConfigured is true.
-               if (_wifiConfigured) Navigator.pop(ctx);
-             },
-             child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (ssidController.text.isNotEmpty && passController.text.isNotEmpty) {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setString('wifi_ssid', ssidController.text);
-                await prefs.setString('wifi_password', passController.text);
+      builder: (ctx) {
+        bool isObscured = true;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Configure WiFi"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Enter WiFi details for smart devices."),
+                  const SizedBox(height: 12),
+                  TextField(
+                      controller: ssidController,
+                      decoration: const InputDecoration(labelText: "SSID")),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: passController,
+                    decoration: InputDecoration(
+                      labelText: "Password",
+                      suffixIcon: IconButton(
+                        icon: Icon(isObscured
+                            ? Icons.visibility
+                            : Icons.visibility_off),
+                        onPressed: () {
+                          setDialogState(() {
+                            isObscured = !isObscured;
+                          });
+                        },
+                      ),
+                    ),
+                    obscureText: isObscured,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    if (_wifiConfigured) Navigator.pop(ctx);
+                  },
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (ssidController.text.isNotEmpty &&
+                        passController.text.isNotEmpty) {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setString('wifi_ssid', ssidController.text);
+                      await prefs.setString(
+                          'wifi_password', passController.text);
 
-                if (mounted) {
-                  setState(() {
-                    _wifiSsid = ssidController.text;
-                    _wifiPassword = passController.text;
-                    _wifiConfigured = true;
-                  });
-                  Navigator.pop(ctx);
-                  context.read<SmartHomeViewModel>().loadDevices(); // Reload with new config if needed
-                }
-              }
-            },
-            child: const Text("Save"),
-          ),
-        ],
-      ),
+                      if (mounted) {
+                        setState(() {
+                          _wifiSsid = ssidController.text;
+                          _wifiPassword = passController.text;
+                          _wifiConfigured = true;
+                        });
+                        Navigator.pop(ctx);
+                        context.read<SmartHomeViewModel>().loadDevices();
+                      }
+                    }
+                  },
+                  child: const Text("Save"),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 

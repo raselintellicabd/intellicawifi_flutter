@@ -41,7 +41,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'IntellicaWifi',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
       initialRoute: initialRoute,
       routes: {
         '/mac_address': (context) => const MacAddressScreen(),
