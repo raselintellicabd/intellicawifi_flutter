@@ -218,8 +218,6 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
 
   Widget _buildDeviceCard(SmartDevice device, SmartHomeViewModel vm) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -256,7 +254,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _showColorPickerWithDialog(device),
                     icon: const Icon(Icons.palette, size: 18),
-                    label: const Text("Color", style: TextStyle(fontSize: 12)),
+                    label: const Text("", style: TextStyle(fontSize: 12)),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -264,7 +262,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _showBrightnessDialog(device),
                     icon: const Icon(Icons.wb_sunny, size: 18),
-                    label: const Text("Bright", style: TextStyle(fontSize: 12)),
+                    label: const Text("", style: TextStyle(fontSize: 12)),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -272,7 +270,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _showSaturationDialog(device),
                     icon: const Icon(Icons.contrast, size: 18), // Use nearest material icon
-                    label: const Text("Sat", style: TextStyle(fontSize: 12)),
+                    label: const Text("", style: TextStyle(fontSize: 12)),
                   ),
                 ),
               ],
@@ -451,7 +449,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                   );
                   if (result != null && result is String) {
                      if (mounted) {
-                       context.read<SmartHomeViewModel>().commissionDevice(result, _wifiSsid, _wifiPassword);
+                       context.read<SmartHomeViewModel>().commissionDevice(result);
                      }
                   }
                 },
@@ -477,7 +475,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () {
-              context.read<SmartHomeViewModel>().commissionDevice(controller.text, _wifiSsid, _wifiPassword);
+              context.read<SmartHomeViewModel>().commissionDevice(controller.text);
               Navigator.pop(ctx);
             },
             child: const Text("Add"),

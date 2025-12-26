@@ -81,12 +81,12 @@ class SmartHomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> commissionDevice(String pairingCode, String wifiSsid, String wifiPassword) async {
+  Future<void> commissionDevice(String pairingCode) async {
     _isOperationLoading = true;
     notifyListeners();
 
     try {
-      final success = await _repository.commissionDevice("$pairingCode,$wifiSsid,$wifiPassword");
+      final success = await _repository.commissionDevice(pairingCode);
       if (success) {
         _operationResult = UiState.success("Device commissioned successfully");
         Future.delayed(const Duration(seconds: 10), () {

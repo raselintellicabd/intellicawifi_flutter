@@ -93,15 +93,6 @@ class _OverviewScreenState extends State<OverviewScreen> {
                           onPressed: viewModel.loadRouterInfo,
                           icon: const Icon(Icons.refresh),
                           label: const Text("Retry Connection"),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
                         ),
                       ],
                     ),
