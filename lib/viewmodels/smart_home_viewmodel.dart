@@ -25,14 +25,16 @@ class SmartHomeViewModel extends ChangeNotifier {
     _devices = UiState.loading();
     notifyListeners();
     try {
-      final deviceList = await _repository.listDevices();
-      _devices = UiState.success(deviceList);
+      final apiDevices = await _repository.listDevices();
+      final loadedDevices = await Future.wait(
+        apiDevices.map((d) => _repository.getDeviceConfig(d))
+      );
+      _devices = UiState.success(loadedDevices);
     } catch (e) {
       _devices = UiState.error(e.toString());
     }
     notifyListeners();
   }
-
   Future<void> loadWifiConfig() async {
     try {
       final config = await _repository.getBartonWifiConfig();
@@ -81,15 +83,19 @@ class SmartHomeViewModel extends ChangeNotifier {
     try {
       final success = await _repository.setDeviceStatus("$nodeId,$setLight");
       if (success) {
-        // Optimistic update
         if (_devices.status == UiStatus.success) {
            final currentList = _devices.data!;
-           final updatedList = currentList.map((d) {
+           final updatedList = <SmartDevice>[];
+           
+           for (var d in currentList) {
              if (d.nodeId == nodeId) {
-               return d.copyWith(isOn: !currentStatus);
+               final updatedDevice = d.copyWith(isOn: !currentStatus);
+               await _repository.saveDeviceConfig(updatedDevice);
+               updatedList.add(updatedDevice);
+             } else {
+               updatedList.add(d);
              }
-             return d;
-           }).toList();
+           }
            _devices = UiState.success(updatedList);
         }
         _operationResult = UiState.success("Device ${!currentStatus ? "turned on" : "turned off"}");
@@ -118,10 +124,8 @@ class SmartHomeViewModel extends ChangeNotifier {
     try {
       final success = await _repository.removeDevice(nodeId);
       if (success) {
+        await _repository.removeDeviceConfig(nodeId);
         _operationResult = UiState.success("Device removed successfully");
-        // Future.delayed(const Duration(seconds: 2), () {
-        //   loadDevices();
-        // });
         loadDevices();
       } else {
          _operationResult = UiState.error("Failed to remove device");
@@ -133,7 +137,7 @@ class SmartHomeViewModel extends ChangeNotifier {
     _isOperationLoading = false;
     notifyListeners();
   }
-
+  
   Future<void> commissionDevice(String pairingCode) async {
     _isOperationLoading = true;
     notifyListeners();
@@ -152,7 +156,6 @@ class SmartHomeViewModel extends ChangeNotifier {
         
         // Get commissioning status
         final status = await _repository.getBartonTemp();
-        print(status);
         if (status == "CommissionedSuccessfully") {
            _operationResult = UiState.success("Device commissioned successfully");
         } else {
@@ -180,6 +183,21 @@ class SmartHomeViewModel extends ChangeNotifier {
       final value = "$nodeId,$hueValue";
       final success = await _repository.setDeviceColor(value);
       if (success) {
+         if (_devices.status == UiStatus.success) {
+           final currentList = _devices.data!;
+           final updatedList = <SmartDevice>[];
+           
+           for (var d in currentList) {
+             if (d.nodeId == nodeId) {
+               final updatedDevice = d.copyWith(hue: hueValue);
+               await _repository.saveDeviceConfig(updatedDevice);
+               updatedList.add(updatedDevice);
+             } else {
+               updatedList.add(d);
+             }
+           }
+           _devices = UiState.success(updatedList);
+        }
         _operationResult = UiState.success("Color updated successfully");
       } else {
         _operationResult = UiState.error("Failed to update color");
@@ -201,8 +219,22 @@ class SmartHomeViewModel extends ChangeNotifier {
       final brightnessApi = ((brightnessPercent / 100.0) * 254).toInt().toString();
       final value = "$nodeId,$brightnessApi";
       final success = await _repository.setDeviceBrightness(value);
-      print("Viewmodel: $success");
       if (success) {
+         if (_devices.status == UiStatus.success) {
+           final currentList = _devices.data!;
+           final updatedList = <SmartDevice>[];
+           
+           for (var d in currentList) {
+             if (d.nodeId == nodeId) {
+               final updatedDevice = d.copyWith(brightness: brightnessPercent);
+               await _repository.saveDeviceConfig(updatedDevice);
+               updatedList.add(updatedDevice);
+             } else {
+               updatedList.add(d);
+             }
+           }
+           _devices = UiState.success(updatedList);
+        }
         _operationResult = UiState.success("Brightness updated successfully");
       } else {
         _operationResult = UiState.error("Failed to update brightness");
@@ -225,6 +257,21 @@ class SmartHomeViewModel extends ChangeNotifier {
       final value = "$nodeId,$saturationApi";
       final success = await _repository.setDeviceSaturation(value);
       if (success) {
+         if (_devices.status == UiStatus.success) {
+           final currentList = _devices.data!;
+           final updatedList = <SmartDevice>[];
+           
+           for (var d in currentList) {
+             if (d.nodeId == nodeId) {
+               final updatedDevice = d.copyWith(saturation: saturationPercent);
+               await _repository.saveDeviceConfig(updatedDevice);
+               updatedList.add(updatedDevice);
+             } else {
+               updatedList.add(d);
+             }
+           }
+           _devices = UiState.success(updatedList);
+        }
         _operationResult = UiState.success("Saturation updated successfully");
       } else {
         _operationResult = UiState.error("Failed to update saturation");

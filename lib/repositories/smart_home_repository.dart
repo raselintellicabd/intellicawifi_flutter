@@ -1,6 +1,7 @@
 import '../api/api_service.dart';
 import '../models/models.dart';
 import '../utils/router_mac_manager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SmartHomeRepository {
   final ApiService _api = ApiService();
@@ -170,6 +171,42 @@ class SmartHomeRepository {
           .map((id) => SmartDevice(nodeId: id))
           .toList();
     }
+  }
+  Future<void> saveDeviceConfig(SmartDevice device) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = "device_config_${device.nodeId}";
+    final value = "${device.isOn},${device.hue},${device.brightness},${device.saturation}";
+    await prefs.setString(key, value);
+  }
+
+  Future<SmartDevice> getDeviceConfig(SmartDevice deviceResultFromApi) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = "device_config_${deviceResultFromApi.nodeId}";
+    final value = prefs.getString(key);
+    
+    if (value != null && value.isNotEmpty) {
+       final parts = value.split(',');
+       if (parts.length >= 4) {
+         final isOn = parts[0] == 'true';
+         final hue = int.tryParse(parts[1]) ?? 0;
+         final brightness = int.tryParse(parts[2]) ?? 50;
+         final saturation = int.tryParse(parts[3]) ?? 50;
+         
+         return deviceResultFromApi.copyWith(
+           isOn: isOn,
+           hue: hue,
+           brightness: brightness,
+           saturation: saturation,
+         );
+       }
+    }
+    return deviceResultFromApi;
+  }
+  
+  Future<void> removeDeviceConfig(String nodeId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = "device_config_$nodeId";
+    await prefs.remove(key);
   }
 }
 

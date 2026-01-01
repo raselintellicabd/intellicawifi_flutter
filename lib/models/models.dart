@@ -112,18 +112,34 @@ class SmartDevice {
   final String nodeId;
   final bool isOn;
   final String label;
+  final int hue;
+  final int brightness;
+  final int saturation;
 
   SmartDevice({
     required this.nodeId,
     this.isOn = true,
     this.label = "Unknown Device",
+    this.hue = 0,
+    this.brightness = 50,
+    this.saturation = 50,
   });
   
-  SmartDevice copyWith({String? nodeId, bool? isOn, String? label}) {
+  SmartDevice copyWith({
+    String? nodeId, 
+    bool? isOn, 
+    String? label,
+    int? hue,
+    int? brightness,
+    int? saturation,
+  }) {
     return SmartDevice(
       nodeId: nodeId ?? this.nodeId,
       isOn: isOn ?? this.isOn,
       label: label ?? this.label,
+      hue: hue ?? this.hue,
+      brightness: brightness ?? this.brightness,
+      saturation: saturation ?? this.saturation,
     );
   }
 }

@@ -293,8 +293,8 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
   }
 
   void _showColorPickerWithDialog(SmartDevice device) {
-    String selectedColor = "Red";
-    int selectedHue = 0;
+    String selectedColor = "Custom"; // You might want to map hue to name if possible, or leave as Custom
+    int selectedHue = device.hue;
 
     showDialog(
       context: context,
@@ -335,7 +335,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
   }
 
   void _showBrightnessDialog(SmartDevice device) {
-    double value = 50;
+    double value = device.brightness.toDouble();
     showDialog(
       context: context,
       builder: (ctx) {
@@ -385,7 +385,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
   }
 
   void _showSaturationDialog(SmartDevice device) {
-    double value = 50;
+    double value = device.saturation.toDouble();
     showDialog(
       context: context,
       builder: (ctx) {
