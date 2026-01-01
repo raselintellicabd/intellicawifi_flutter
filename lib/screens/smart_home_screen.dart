@@ -16,43 +16,38 @@ class SmartHomeScreen extends StatefulWidget {
 }
 
 class _SmartHomeScreenState extends State<SmartHomeScreen> {
-  String _wifiSsid = "";
-  String _wifiPassword = "";
-  bool _wifiConfigured = false;
+  // Local state for wifi is now in ViewModel
 
   @override
   void initState() {
     super.initState();
-    _checkWifiConfig();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkWifiConfig();
+    });
   }
 
   Future<void> _checkWifiConfig() async {
-    final prefs = await SharedPreferences.getInstance();
-    final ssid = prefs.getString('wifi_ssid');
-    final password = prefs.getString('wifi_password');
+    if (!mounted) return;
+    final vm = context.read<SmartHomeViewModel>();
+    
+    // Check config
+    await vm.loadWifiConfig();
 
-    if (ssid != null && password != null && ssid.isNotEmpty && password.isNotEmpty) {
-      if (mounted) {
-        setState(() {
-          _wifiSsid = ssid;
-          _wifiPassword = password;
-          _wifiConfigured = true;
-        });
-      }
-    } else {
+    if (!vm.isWifiConfigured) {
       if (mounted) {
         _showWifiConfigDialog();
       }
     }
     
     if (mounted) {
-      context.read<SmartHomeViewModel>().loadDevices();
+      vm.loadDevices();
     }
   }
 
   void _showWifiConfigDialog() {
-    final ssidController = TextEditingController(text: _wifiSsid);
-    final passController = TextEditingController(text: _wifiPassword);
+    final vm = context.read<SmartHomeViewModel>();
+    final ssidController = TextEditingController(text: vm.ssid);
+    final passController = TextEditingController(text: vm.password);
 
     showDialog(
       context: context,
@@ -94,7 +89,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    if (_wifiConfigured) Navigator.pop(ctx);
+                    if (vm.isWifiConfigured) Navigator.pop(ctx);
                   },
                   child: const Text("Cancel"),
                 ),
@@ -102,19 +97,13 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                   onPressed: () async {
                     if (ssidController.text.isNotEmpty &&
                         passController.text.isNotEmpty) {
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setString('wifi_ssid', ssidController.text);
-                      await prefs.setString(
-                          'wifi_password', passController.text);
-
-                      if (mounted) {
-                        setState(() {
-                          _wifiSsid = ssidController.text;
-                          _wifiPassword = passController.text;
-                          _wifiConfigured = true;
-                        });
+                      
+                      final success = await vm.saveWifiConfig(
+                          ssidController.text, passController.text);
+                      
+                      if (success && mounted) {
                         Navigator.pop(ctx);
-                        context.read<SmartHomeViewModel>().loadDevices();
+                        vm.loadDevices();
                       }
                     }
                   },
@@ -230,7 +219,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Light Device", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(device.label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       Text("ID: ${device.nodeId}", style: const TextStyle(color: Colors.grey)),
                     ],
                   ),
@@ -238,15 +227,16 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                 Switch(
                   value: device.isOn,
                   onChanged: (val) {
-                    vm.toggleDevice(device.nodeId, device.isOn, _wifiSsid, _wifiPassword);
+                    vm.toggleDevice(device.nodeId, device.isOn);
                   },
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => vm.removeDevice(device.nodeId, _wifiSsid, _wifiPassword),
+                  onPressed: () => vm.removeDevice(device.nodeId),
                 ),
               ],
             ),
+
             const SizedBox(height: 12),
             Row(
               children: [
@@ -312,7 +302,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
             ElevatedButton(
               onPressed: () {
                 context.read<SmartHomeViewModel>().setDeviceColor(
-                    device.nodeId, selectedHue, _wifiSsid, _wifiPassword);
+                    device.nodeId, selectedHue);
                 Navigator.pop(ctx);
               },
               child: const Text("Save"),
@@ -360,7 +350,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                 ElevatedButton(
                   onPressed: () {
                     context.read<SmartHomeViewModel>().setDeviceBrightness(
-                        device.nodeId, value.round(), _wifiSsid, _wifiPassword);
+                        device.nodeId, value.round());
                     Navigator.pop(ctx);
                   },
                   child: const Text("Save"),
@@ -410,7 +400,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                 ElevatedButton(
                   onPressed: () {
                     context.read<SmartHomeViewModel>().setDeviceSaturation(
-                        device.nodeId, value.round(), _wifiSsid, _wifiPassword);
+                        device.nodeId, value.round());
                     Navigator.pop(ctx);
                   },
                   child: const Text("Save"),

@@ -15,12 +15,17 @@ class SmartHomeViewModel extends ChangeNotifier {
   bool _isOperationLoading = false;
   bool get isOperationLoading => _isOperationLoading;
 
+  String? _ssid;
+  String? _password;
+  String get ssid => _ssid ?? "";
+  String get password => _password ?? "";
+  bool get isWifiConfigured => _ssid != null && _ssid!.isNotEmpty;
+
   void loadDevices() async {
     _devices = UiState.loading();
     notifyListeners();
     try {
-      final nodeIds = await _repository.listDevices();
-      final deviceList = nodeIds.map((id) => SmartDevice(nodeId: id, isOn: true)).toList();
+      final deviceList = await _repository.listDevices();
       _devices = UiState.success(deviceList);
     } catch (e) {
       _devices = UiState.error(e.toString());
@@ -28,13 +33,53 @@ class SmartHomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleDevice(String nodeId, bool currentStatus, String ssid, String password) async {
+  Future<void> loadWifiConfig() async {
+    try {
+      final config = await _repository.getBartonWifiConfig();
+      if (config.isNotEmpty) {
+        _ssid = config[0];
+        _password = config[1];
+      } else {
+        _ssid = null;
+        _password = null;
+      }
+    } catch (e) {
+      _ssid = null;
+      _password = null;
+    }
+    notifyListeners();
+  }
+
+  Future<bool> saveWifiConfig(String ssid, String password) async {
+    _isOperationLoading = true;
+    notifyListeners();
+    
+    bool success = false;
+    try {
+      success = await _repository.setBartonWifiConfig(ssid, password);
+      if (success) {
+        _ssid = ssid;
+        _password = password;
+        _operationResult = UiState.success("WiFi configured successfully");
+      } else {
+        _operationResult = UiState.error("Failed to configure WiFi");
+      }
+    } catch (e) {
+      _operationResult = UiState.error(e.toString());
+    }
+    
+    _isOperationLoading = false;
+    notifyListeners();
+    return success;
+  }
+
+  Future<void> toggleDevice(String nodeId, bool currentStatus) async {
     final setLight = currentStatus ? "OFF" : "ON";
     _isOperationLoading = true;
     notifyListeners();
 
     try {
-      final success = await _repository.setDeviceStatus("$setLight,$nodeId,$ssid,$password");
+      final success = await _repository.setDeviceStatus("$nodeId,$setLight");
       if (success) {
         // Optimistic update
         if (_devices.status == UiStatus.success) {
@@ -59,17 +104,25 @@ class SmartHomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> removeDevice(String nodeId, String wifiSsid, String wifiPassword) async {
+  Future<void> removeDevice(String nodeId) async {
     _isOperationLoading = true;
     notifyListeners();
 
+    if (!isWifiConfigured) {
+       _operationResult = UiState.error("WiFi not configured. Cannot remove device.");
+       _isOperationLoading = false;
+       notifyListeners();
+       return;
+    }
+
     try {
-      final success = await _repository.removeDevice("$nodeId,$wifiSsid,$wifiPassword");
+      final success = await _repository.removeDevice(nodeId);
       if (success) {
         _operationResult = UiState.success("Device removed successfully");
-        Future.delayed(const Duration(seconds: 7), () {
-          loadDevices();
-        });
+        // Future.delayed(const Duration(seconds: 2), () {
+        //   loadDevices();
+        // });
+        loadDevices();
       } else {
          _operationResult = UiState.error("Failed to remove device");
       }
@@ -89,7 +142,7 @@ class SmartHomeViewModel extends ChangeNotifier {
       final success = await _repository.commissionDevice(pairingCode);
       if (success) {
         _operationResult = UiState.success("Device commissioned successfully");
-        Future.delayed(const Duration(seconds: 10), () {
+        Future.delayed(const Duration(seconds: 23), () {
           loadDevices();
         });
       } else {
@@ -103,12 +156,12 @@ class SmartHomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setDeviceColor(String nodeId, int hueValue, String ssid, String password) async {
+  Future<void> setDeviceColor(String nodeId, int hueValue) async {
     _isOperationLoading = true;
     notifyListeners();
 
     try {
-      final value = "$hueValue,$nodeId,$ssid,$password";
+      final value = "$nodeId,$hueValue";
       final success = await _repository.setDeviceColor(value);
       if (success) {
         _operationResult = UiState.success("Color updated successfully");
@@ -123,15 +176,16 @@ class SmartHomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setDeviceBrightness(String nodeId, int brightnessPercent, String ssid, String password) async {
+  Future<void> setDeviceBrightness(String nodeId, int brightnessPercent) async {
     _isOperationLoading = true;
     notifyListeners();
 
     try {
       // Convert 0-100 to 0-254
       final brightnessApi = ((brightnessPercent / 100.0) * 254).toInt().toString();
-      final value = "$brightnessApi,$nodeId,$ssid,$password";
+      final value = "$nodeId,$brightnessApi";
       final success = await _repository.setDeviceBrightness(value);
+      print("Viewmodel: $success");
       if (success) {
         _operationResult = UiState.success("Brightness updated successfully");
       } else {
@@ -145,14 +199,14 @@ class SmartHomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setDeviceSaturation(String nodeId, int saturationPercent, String ssid, String password) async {
+  Future<void> setDeviceSaturation(String nodeId, int saturationPercent) async {
     _isOperationLoading = true;
     notifyListeners();
 
     try {
       // Convert 0-100 to 0-254
       final saturationApi = ((saturationPercent / 100.0) * 254).toInt().toString();
-      final value = "$saturationApi,$nodeId,$ssid,$password";
+      final value = "$nodeId,$saturationApi";
       final success = await _repository.setDeviceSaturation(value);
       if (success) {
         _operationResult = UiState.success("Saturation updated successfully");

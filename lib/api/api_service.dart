@@ -21,6 +21,11 @@ class ApiService {
   Future<WebPaResponse> getDeviceParameter(String deviceMac, String parameterName) async {
     final url = Uri.parse("$_baseUrl/api/v2/device/$deviceMac/config?names=$parameterName");
     
+    print("------------------------------------------------------------------");
+    print("API Request: GET $url");
+    print("Headers: {Authorization: $_authHeader}");
+    print("------------------------------------------------------------------");
+
     try {
       final response = await _client.get(
         url,
@@ -29,6 +34,11 @@ class ApiService {
         },
       );
 
+      print("------------------------------------------------------------------");
+      print("API Response: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+      print("------------------------------------------------------------------");
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonMap = jsonDecode(response.body);
         return WebPaResponse.fromJson(jsonMap);
@@ -36,13 +46,21 @@ class ApiService {
         throw HttpException("Failed to get parameter: ${response.statusCode} ${response.body}");
       }
     } catch (e) {
+      print("API Error: $e");
       rethrow;
     }
   }
 
   Future<WebPaResponse> setDeviceParameter(String deviceMac, SetParameterRequest body) async {
     final url = Uri.parse("$_baseUrl/api/v2/device/$deviceMac/config");
+    final reqBody = jsonEncode(body.toJson());
     
+    print("------------------------------------------------------------------");
+    print("API Request: PATCH $url");
+    print("Headers: {Authorization: $_authHeader, Content-Type: application/json}");
+    print("Request Body: $reqBody");
+    print("------------------------------------------------------------------");
+
     try {
       final response = await _client.patch(
         url,
@@ -50,9 +68,14 @@ class ApiService {
           'Authorization': _authHeader,
           'Content-Type': 'application/json',
         },
-        body: jsonEncode(body.toJson()),
+        body: reqBody,
       );
       
+      print("------------------------------------------------------------------");
+      print("API Response: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+      print("------------------------------------------------------------------");
+
       // Original logic handles 520 as success in SmartHomeRepository?
       // We will let the repository handle that specific logic or handle general success here.
       // But we return the response object or throw.
@@ -72,12 +95,20 @@ class ApiService {
       return WebPaResponse.fromJson(jsonMap);
       
     } catch (e) {
+      print("API Error: $e");
       rethrow;
     }
   }
 
   Future<WebPaResponse> rebootDevice(String deviceMac, WebPaRequest body) async {
     final url = Uri.parse("$_baseUrl/api/v2/device/$deviceMac/config");
+    final reqBody = jsonEncode(body.toJson());
+
+    print("------------------------------------------------------------------");
+    print("API Request: PATCH $url");
+    print("Headers: {Authorization: $_authHeader, Content-Type: application/json}");
+    print("Request Body: $reqBody");
+    print("------------------------------------------------------------------");
 
     try {
       final response = await _client.patch(
@@ -86,8 +117,13 @@ class ApiService {
           'Authorization': _authHeader,
           'Content-Type': 'application/json',
         },
-        body: jsonEncode(body.toJson()),
+        body: reqBody,
       );
+
+      print("------------------------------------------------------------------");
+      print("API Response: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+      print("------------------------------------------------------------------");
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonMap = jsonDecode(response.body);
@@ -96,7 +132,9 @@ class ApiService {
          throw HttpException("Failed to reboot: ${response.statusCode} ${response.body}");
       }
     } catch (e) {
+      print("API Error: $e");
       rethrow;
     }
   }
 }
+

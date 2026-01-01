@@ -111,16 +111,19 @@ class RouterInfo {
 class SmartDevice {
   final String nodeId;
   final bool isOn;
+  final String label;
 
   SmartDevice({
     required this.nodeId,
     this.isOn = true,
+    this.label = "Unknown Device",
   });
   
-  SmartDevice copyWith({String? nodeId, bool? isOn}) {
+  SmartDevice copyWith({String? nodeId, bool? isOn, String? label}) {
     return SmartDevice(
       nodeId: nodeId ?? this.nodeId,
       isOn: isOn ?? this.isOn,
+      label: label ?? this.label,
     );
   }
 }
