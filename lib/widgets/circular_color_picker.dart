@@ -2,13 +2,14 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 class CircularColorPicker extends StatefulWidget {
-  final String selectedColorName;
+  final int selectedHue;
   final Function(String name, int hue) onColorSelected;
 
   const CircularColorPicker({
     Key? key,
-    required this.selectedColorName,
+    required this.selectedHue,
     required this.onColorSelected,
+    String? selectedColorName, // Optional/Deprecate if not needed
   }) : super(key: key);
 
   @override
@@ -41,8 +42,18 @@ class _CircularColorPickerState extends State<CircularColorPicker> {
   @override
   void initState() {
     super.initState();
-    _selectedIndex = _colors.indexWhere((c) => c.name == widget.selectedColorName);
-    if (_selectedIndex == -1) _selectedIndex = 0;
+    // Find closest hue match
+    int closestIndex = 0;
+    int minDiff = 360; // Max possible diff roughly
+
+    for (int i = 0; i < _colors.length; i++) {
+        int diff = (_colors[i].hue - widget.selectedHue).abs();
+        if (diff < minDiff) {
+            minDiff = diff;
+            closestIndex = i;
+        }
+    }
+    _selectedIndex = closestIndex;
   }
 
   void _handlePan(Offset localPosition, Size size) {

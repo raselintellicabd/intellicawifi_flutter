@@ -307,7 +307,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
               Text("Device: ${device.nodeId}", style: const TextStyle(color: Colors.grey)),
               const SizedBox(height: 16),
               CircularColorPicker(
-                selectedColorName: selectedColor,
+                selectedHue: selectedHue,
                 onColorSelected: (name, hue) {
                   selectedColor = name;
                   selectedHue = hue;

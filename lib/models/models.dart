@@ -121,8 +121,8 @@ class SmartDevice {
     this.isOn = true,
     this.label = "Unknown Device",
     this.hue = 0,
-    this.brightness = 50,
-    this.saturation = 50,
+    this.brightness = 100,
+    this.saturation = 100,
   });
   
   SmartDevice copyWith({
