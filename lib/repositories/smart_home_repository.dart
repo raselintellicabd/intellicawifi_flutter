@@ -85,6 +85,20 @@ class SmartHomeRepository {
     return _sendSetRequest("Device.Barton.SSID", "$ssid,$password");
   }
 
+  Future<String> getBartonTemp() async {
+    final deviceMac = await RouterMacManager.getMac();
+    try {
+      final response = await _api.getDeviceParameter(deviceMac, "Device.Barton.temp");
+      return response.parameters?.firstOrNull?.getStringValue() ?? "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  Future<bool> setBartonTemp(String value) async {
+    return _sendSetRequest("Device.Barton.temp", value);
+  }
+
   Future<bool> _sendSetRequest(String name, String value) async {
     final deviceMac = await RouterMacManager.getMac();
     final req = SetParameterRequest(

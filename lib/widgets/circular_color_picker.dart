@@ -87,8 +87,8 @@ class _CircularColorPickerState extends State<CircularColorPicker> {
           ),
           child: Center(
             child: Container(
-              width: 180,
-              height: 180,
+              width: 150,
+              height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Theme.of(context).cardColor,
@@ -129,7 +129,7 @@ class _ColorWheelPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) / 2;
     final strokeWidth = 70.0;
-    final wheelRadius = radius - strokeWidth / 2;
+    final wheelRadius = radius - strokeWidth / 4;
 
     final segmentAngle = 2 * pi / colors.length;
 

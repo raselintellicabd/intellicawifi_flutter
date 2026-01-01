@@ -54,6 +54,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
       barrierDismissible: false,
       builder: (ctx) {
         bool isObscured = true;
+        bool isSaving = false;
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
@@ -65,10 +66,12 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                   const SizedBox(height: 12),
                   TextField(
                       controller: ssidController,
+                      enabled: !isSaving,
                       decoration: const InputDecoration(labelText: "SSID")),
                   const SizedBox(height: 8),
                   TextField(
                     controller: passController,
+                    enabled: !isSaving,
                     decoration: InputDecoration(
                       labelText: "Password",
                       suffixIcon: IconButton(
@@ -87,28 +90,46 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                 ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () {
-                    if (vm.isWifiConfigured) Navigator.pop(ctx);
-                  },
-                  child: const Text("Cancel"),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (ssidController.text.isNotEmpty &&
-                        passController.text.isNotEmpty) {
-                      
-                      final success = await vm.saveWifiConfig(
-                          ssidController.text, passController.text);
-                      
-                      if (success && mounted) {
-                        Navigator.pop(ctx);
-                        vm.loadDevices();
+                if (!isSaving)
+                  TextButton(
+                    onPressed: () {
+                      if (vm.isWifiConfigured) Navigator.pop(ctx);
+                    },
+                    child: const Text("Cancel"),
+                  ),
+                if (isSaving)
+                  const SizedBox(
+                    width: 24, 
+                    height: 24, 
+                    child: CircularProgressIndicator(strokeWidth: 2.0)
+                  )
+                else
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (ssidController.text.isNotEmpty &&
+                          passController.text.isNotEmpty) {
+                        
+                        setDialogState(() {
+                          isSaving = true;
+                        });
+
+                        final success = await vm.saveWifiConfig(
+                            ssidController.text, passController.text);
+                        
+                        if (mounted) {
+                           if (success) {
+                             Navigator.pop(ctx);
+                             vm.loadDevices();
+                           } else {
+                             setDialogState(() {
+                               isSaving = false;
+                             });
+                           }
+                        }
                       }
-                    }
-                  },
-                  child: const Text("Save"),
-                ),
+                    },
+                    child: const Text("Save"),
+                  ),
               ],
             );
           },

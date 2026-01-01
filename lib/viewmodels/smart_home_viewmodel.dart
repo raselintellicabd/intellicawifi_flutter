@@ -141,16 +141,32 @@ class SmartHomeViewModel extends ChangeNotifier {
     try {
       final success = await _repository.commissionDevice(pairingCode);
       if (success) {
-        _operationResult = UiState.success("Device commissioned successfully");
-        Future.delayed(const Duration(seconds: 23), () {
-          loadDevices();
-        });
+        // Wait 23 seconds for the device to join
+        await Future.delayed(const Duration(seconds: 23));
+        
+        // Trigger status check
+        await _repository.setBartonTemp("commission");
+        
+        // Wait 1 second for status to update
+        await Future.delayed(const Duration(seconds: 1));
+        
+        // Get commissioning status
+        final status = await _repository.getBartonTemp();
+        print(status);
+        if (status == "CommissionedSuccessfully") {
+           _operationResult = UiState.success("Device commissioned successfully");
+        } else {
+           _operationResult = UiState.error("Failed to commission device");
+        }
       } else {
-        _operationResult = UiState.error("Failed to commission device");
+        _operationResult = UiState.error("Failed to initiate commissioning");
       }
     } catch (e) {
       _operationResult = UiState.error(e.toString());
     }
+    
+    // Always load devices at the end
+    loadDevices();
     
     _isOperationLoading = false;
     notifyListeners();
