@@ -103,6 +103,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
 
                 return Column(
                   children: [
+                    _buildInfoCard("Device MAC", info.deviceMac, Icons.fingerprint),
+                    const SizedBox(height: 12),
                     _buildInfoCard("Model", info.modelName, Icons.router),
                     const SizedBox(height: 12),
                     _buildInfoCard(
