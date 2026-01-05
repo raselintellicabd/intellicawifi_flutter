@@ -58,6 +58,16 @@ class SmartHomeRepository {
     return _sendSetRequest("Device.Light.Saturation", saturation);
   }
 
+  Future<bool> setDeviceLabel(String nodeId, String label) async {
+    final value = "$nodeId,$label";
+    return _sendSetRequest("Device.Light.Label", value);
+  }
+
+  Future<bool> setDeviceTimer(String nodeId, int timeInSeconds, String action) async {
+    final value = "$nodeId,$timeInSeconds,$action";
+    return _sendSetRequest("Device.Light.Timer", value);
+  }
+
   Future<List<String>> getBartonWifiConfig() async {
     final deviceMac = await RouterMacManager.getMac();
     try {

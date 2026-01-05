@@ -284,6 +284,46 @@ class SmartHomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setDeviceLabel(String nodeId, String label) async {
+    _isOperationLoading = true;
+    notifyListeners();
+
+    try {
+      final success = await _repository.setDeviceLabel(nodeId, label);
+      if (success) {
+        _operationResult = UiState.success("Label updated successfully");
+        // Refresh the device list
+        loadDevices();
+      } else {
+        _operationResult = UiState.error("Failed to update label");
+      }
+    } catch (e) {
+      _operationResult = UiState.error(e.toString());
+    }
+
+    _isOperationLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> setDeviceTimer(String nodeId, int timeInSeconds, String action) async {
+    _isOperationLoading = true;
+    notifyListeners();
+
+    try {
+      final success = await _repository.setDeviceTimer(nodeId, timeInSeconds, action);
+      if (success) {
+        _operationResult = UiState.success("Timer set successfully");
+      } else {
+        _operationResult = UiState.error("Failed to set timer");
+      }
+    } catch (e) {
+      _operationResult = UiState.error(e.toString());
+    }
+
+    _isOperationLoading = false;
+    notifyListeners();
+  }
+
   void clearOperationResult() {
     _operationResult = null;
     notifyListeners();

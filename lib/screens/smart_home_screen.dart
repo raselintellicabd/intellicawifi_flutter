@@ -7,6 +7,8 @@ import '../models/models.dart';
 import '../widgets/circular_color_picker.dart';
 
 import 'qr_scanner_screen.dart';
+import 'package:wifi_scan/wifi_scan.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class SmartHomeScreen extends StatefulWidget {
   const SmartHomeScreen({super.key});
@@ -67,7 +69,13 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                   TextField(
                       controller: ssidController,
                       enabled: !isSaving,
-                      decoration: const InputDecoration(labelText: "SSID")),
+                      decoration: InputDecoration(
+                        labelText: "SSID",
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.wifi_find),
+                          onPressed: () => _scanAndSelectWifi(context, ssidController),
+                        ),
+                      )),
                   const SizedBox(height: 8),
                   TextField(
                     controller: passController,
@@ -240,7 +248,19 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(device.label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(device.label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 18),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => _showEditLabelDialog(device),
+                          ),
+                        ],
+                      ),
                       Text("ID: ${device.nodeId}", style: const TextStyle(color: Colors.grey)),
                     ],
                   ),
@@ -285,7 +305,11 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                   ),
                 ),
               ],
-            )
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            _buildTimerSection(device, vm),
           ],
         ),
       ),
@@ -494,5 +518,269 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
         ],
       ),
     );
+  }
+
+  void _showEditLabelDialog(SmartDevice device) {
+    final controller = TextEditingController(text: device.label);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Edit Label"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: "Device Label"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                context.read<SmartHomeViewModel>().setDeviceLabel(device.nodeId, controller.text);
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimerSection(SmartDevice device, SmartHomeViewModel vm) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Schedule ON/OFF",
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _showTimerDialog(device),
+                icon: const Icon(Icons.schedule, size: 18),
+                label: const Text("Set Timer", style: TextStyle(fontSize: 12)),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _showTimerDialog(SmartDevice device) {
+    TimeOfDay? selectedTime;
+    String? selectedAction;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Set Timer"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("Device: ${device.nodeId}", style: const TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    title: const Text("Select Time"),
+                    trailing: Text(
+                      selectedTime != null
+                          ? "${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}"
+                          : "Not selected",
+                    ),
+                    onTap: () async {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                      );
+                      if (time != null) {
+                        setDialogState(() {
+                          selectedTime = time;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  const Text("Select Action:", style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ChoiceChip(
+                        label: const Text("ON"),
+                        selected: selectedAction == "ON",
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            selectedAction = selected ? "ON" : null;
+                          });
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text("OFF"),
+                        selected: selectedAction == "OFF",
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            selectedAction = selected ? "OFF" : null;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: (selectedTime != null && selectedAction != null)
+                      ? () {
+                          // Calculate time difference in seconds
+                          final now = DateTime.now();
+                          final selectedDateTime = DateTime(
+                            now.year,
+                            now.month,
+                            now.day,
+                            selectedTime!.hour,
+                            selectedTime!.minute,
+                          );
+                          
+                          // If selected time is in the past, assume it's for tomorrow
+                          final targetDateTime = selectedDateTime.isBefore(now)
+                              ? selectedDateTime.add(const Duration(days: 1))
+                              : selectedDateTime;
+                          
+                          final difference = targetDateTime.difference(now);
+                          final timeInSeconds = difference.inSeconds;
+                          
+                          context.read<SmartHomeViewModel>().setDeviceTimer(
+                                device.nodeId,
+                                timeInSeconds,
+                                selectedAction!,
+                              );
+                          Navigator.pop(ctx);
+                        }
+                      : null,
+                  child: const Text("Save"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+
+  Future<void> _scanAndSelectWifi(BuildContext context, TextEditingController ssidController) async {
+    // Check permissions
+    var status = await Permission.location.status;
+    if (!status.isGranted) {
+      status = await Permission.location.request();
+      if (!status.isGranted) {
+         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Location permission required for WiFi scanning")));
+         return;
+      }
+    }
+
+    // Check if wifi is enabled
+    final canScan = await WiFiScan.instance.canStartScan();
+    if (canScan != CanStartScan.yes) {
+         // Try to get results anyway if recently scanned, but warn if cannot scan
+         if (canScan == CanStartScan.noLocationPermissionDenied) {
+           if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Location permission denied")));
+           return;
+         }
+         // e.g. wifi disabled
+         if (canScan == CanStartScan.noLocationServiceDisabled) {
+             if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Location service is disabled. Please enable it.")));
+             return;
+         }
+    }
+
+    // Show loading
+    if (!mounted) return;
+    showDialog(
+      context: context, 
+      barrierDismissible: false, 
+      builder: (_) => const Center(child: CircularProgressIndicator())
+    );
+
+    try {
+      final result = await WiFiScan.instance.startScan();
+      if (!result) {
+         // Scan start failed, maybe throttled? 
+         // Just try to get existing results
+      } else {
+        // Wait for scan to likely complete (Android usually takes a few seconds)
+        await Future.delayed(const Duration(seconds: 4));
+      }
+
+      final results = await WiFiScan.instance.getScannedResults();
+      
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context); // Close loading
+      }
+
+      if (results.isEmpty) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No networks found")));
+        return;
+      }
+
+       // Filter empty SSIDs and duplicates
+      final uniqueSsids = <String>{};
+      final uniqueResults = results.where((r) {
+        if (r.ssid.isEmpty) return false;
+        if (uniqueSsids.contains(r.ssid)) return false;
+        uniqueSsids.add(r.ssid);
+        return true;
+      }).toList();
+
+
+      // Show list
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("Select Network"),
+            content: SizedBox(
+               width: double.maxFinite,
+               child: ListView.builder(
+                 shrinkWrap: true,
+                 itemCount: uniqueResults.length,
+                 itemBuilder: (ctx, i) {
+                   final accessPoint = uniqueResults[i];
+                   return ListTile(
+                     title: Text(accessPoint.ssid),
+                     trailing: const Icon(Icons.wifi), 
+                     onTap: () {
+                       ssidController.text = accessPoint.ssid;
+                       Navigator.pop(ctx);
+                     },
+                   );
+                 },
+               ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context); // Close loading if open
+      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
   }
 }
