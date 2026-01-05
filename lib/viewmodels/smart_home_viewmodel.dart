@@ -138,7 +138,7 @@ class SmartHomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
   
-  Future<void> commissionDevice(String pairingCode) async {
+  Future<void> commissionDevice(String pairingCode, String deviceLabel) async {
     _isOperationLoading = true;
     notifyListeners();
 
@@ -157,7 +157,23 @@ class SmartHomeViewModel extends ChangeNotifier {
         // Get commissioning status
         final status = await _repository.getBartonTemp();
         if (status == "CommissionedSuccessfully") {
-           _operationResult = UiState.success("Device commissioned successfully");
+           
+           // Fetch Light Class which now returns the single last added node ID
+           try {
+             final newId = await _repository.getDeviceLightClass();
+             
+             if (newId.isNotEmpty && newId != "N/A") {
+               // Set Label
+               await _repository.setDeviceLabel(newId.trim(), deviceLabel);
+               _operationResult = UiState.success("Device commissioned and labeled as $deviceLabel");
+             } else {
+               _operationResult = UiState.success("Device commissioned successfully (Label pending - ID not found)");
+             }
+           } catch (e) {
+             print("Error setting label: $e");
+             _operationResult = UiState.success("Device commissioned successfully");
+           }
+
         } else {
            _operationResult = UiState.error("Failed to commission device");
         }

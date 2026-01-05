@@ -463,14 +463,87 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
       context: context,
       builder: (ctx) {
         return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Select Device Type",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDeviceTypeCard(
+                        icon: Icons.lightbulb,
+                        label: "Smart Light",
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _showCommissionMethodSelection("Smart Light");
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildDeviceTypeCard(
+                        icon: Icons.power,
+                        label: "Smart Plug",
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _showCommissionMethodSelection("Smart Plug");
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDeviceTypeCard({required IconData icon, required String label, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        elevation: 4,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 48, color: Theme.of(context).primaryColor),
+              const SizedBox(height: 12),
+              Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCommissionMethodSelection(String deviceType) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
           child: Wrap(
             children: [
+               Padding(
+                 padding: const EdgeInsets.all(16.0),
+                 child: Text("Add $deviceType", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+               ),
               ListTile(
                 leading: const Icon(Icons.keyboard),
                 title: const Text('Enter Code'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _showAddDeviceDialog();
+                  _showAddDeviceDialog(deviceType);
                 },
               ),
               ListTile(
@@ -484,7 +557,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                   );
                   if (result != null && result is String) {
                      if (mounted) {
-                       context.read<SmartHomeViewModel>().commissionDevice(result);
+                       context.read<SmartHomeViewModel>().commissionDevice(result, deviceType);
                      }
                   }
                 },
@@ -496,12 +569,12 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
     );
   }
 
-  void _showAddDeviceDialog() {
+  void _showAddDeviceDialog(String deviceType) {
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Add New Device"),
+        title: Text("Add New $deviceType"),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(labelText: "Device Pairing Code"),
@@ -510,7 +583,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () {
-              context.read<SmartHomeViewModel>().commissionDevice(controller.text);
+              context.read<SmartHomeViewModel>().commissionDevice(controller.text, deviceType);
               Navigator.pop(ctx);
             },
             child: const Text("Add"),
@@ -616,19 +689,19 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                     children: [
                       ChoiceChip(
                         label: const Text("ON"),
-                        selected: selectedAction == "ON",
+                        selected: selectedAction == "on",
                         onSelected: (selected) {
                           setDialogState(() {
-                            selectedAction = selected ? "ON" : null;
+                            selectedAction = selected ? "on" : null;
                           });
                         },
                       ),
                       ChoiceChip(
                         label: const Text("OFF"),
-                        selected: selectedAction == "OFF",
+                        selected: selectedAction == "off",
                         onSelected: (selected) {
                           setDialogState(() {
-                            selectedAction = selected ? "OFF" : null;
+                            selectedAction = selected ? "off" : null;
                           });
                         },
                       ),

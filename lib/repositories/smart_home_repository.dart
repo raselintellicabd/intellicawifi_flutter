@@ -110,6 +110,17 @@ class SmartHomeRepository {
     return _sendSetRequest("Device.Barton.temp", value);
   }
 
+  Future<String> getDeviceLightClass() async {
+    final deviceMac = await RouterMacManager.getMac();
+    try {
+      // User specified curl: curl -H ... -i "https://.../config?names=Device.Light.Class"
+      final response = await _api.getDeviceParameter(deviceMac, "Device.Light.Class");
+      return response.parameters?.firstOrNull?.getStringValue() ?? "";
+    } catch (e) {
+      return "";
+    }
+  }
+
   Future<bool> _sendSetRequest(String name, String value) async {
     final deviceMac = await RouterMacManager.getMac();
     final req = SetParameterRequest(
