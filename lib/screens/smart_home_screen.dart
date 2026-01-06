@@ -37,7 +37,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
 
     if (!vm.isWifiConfigured) {
       if (mounted) {
-        _showWifiConfigDialog();
+        _showWifiConfigDialog(isMandatory: true);
       }
     }
     
@@ -46,7 +46,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
     }
   }
 
-  void _showWifiConfigDialog() {
+  void _showWifiConfigDialog({bool isMandatory = false}) {
     final vm = context.read<SmartHomeViewModel>();
     final ssidController = TextEditingController(text: vm.ssid);
     final passController = TextEditingController(text: vm.password);
@@ -101,7 +101,10 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
                 if (!isSaving)
                   TextButton(
                     onPressed: () {
-                      if (vm.isWifiConfigured) Navigator.pop(ctx);
+                      Navigator.pop(ctx);
+                      if (isMandatory) {
+                        Navigator.of(context).pop();
+                      }
                     },
                     child: const Text("Cancel"),
                   ),
@@ -154,7 +157,7 @@ class _SmartHomeScreenState extends State<SmartHomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () => _showWifiConfigDialog(),
+            onPressed: () => _showWifiConfigDialog(isMandatory: false),
           ),
           IconButton(
             icon: const Icon(Icons.refresh),

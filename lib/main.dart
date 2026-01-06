@@ -12,6 +12,7 @@ import 'screens/connected_devices_screen.dart';
 import 'screens/device_details_screen.dart';
 import 'screens/router_settings_screen.dart';
 import 'screens/smart_home_screen.dart';
+import 'screens/about_router_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +52,7 @@ class MyApp extends StatelessWidget {
         '/connected_devices': (context) => const ConnectedDevicesScreen(),
         '/smart_home': (context) => const SmartHomeScreen(),
         '/router_settings': (context) => const RouterSettingsScreen(),
+        '/about_router': (context) => const AboutRouterScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/device_details') {

@@ -25,7 +25,7 @@ class _RouterSettingsScreenState extends State<RouterSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Router Settings")),
+      appBar: AppBar(title: const Text("Configure SSID")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

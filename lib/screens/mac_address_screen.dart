@@ -29,7 +29,7 @@ class _MacAddressScreenState extends State<MacAddressScreen> {
     if (mac.trim().isEmpty) return;
     await RouterMacManager.saveMac(mac);
     if (mounted) {
-      Navigator.pushReplacementNamed(context, '/overview');
+      Navigator.pushNamedAndRemoveUntil(context, '/overview', (route) => false);
     }
   }
 

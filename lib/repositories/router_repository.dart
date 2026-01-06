@@ -5,10 +5,13 @@ import '../utils/router_mac_manager.dart';
 class RouterRepository {
   final ApiService _api = ApiService();
 
+  Future<String> getCurrentMacAddress() async {
+    return RouterMacManager.getMac();
+  }
+
   Future<RouterInfo> getRouterInfo() async {
     final deviceMac = await RouterMacManager.getMac();
     
-    // Fetch parallel
     final results = await Future.wait([
       _api.getDeviceParameter(deviceMac, "Device.DeviceInfo.SoftwareVersion"),
       _api.getDeviceParameter(deviceMac, "Device.DeviceInfo.UpTime"),

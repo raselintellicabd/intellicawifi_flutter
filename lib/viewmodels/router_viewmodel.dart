@@ -21,12 +21,22 @@ class RouterViewModel extends ChangeNotifier {
   final Map<int, UiState<String>> _ssidNames = {};
   UiState<String> getSsidNameState(int index) => _ssidNames[index] ?? UiState.loading();
 
+  String? _routerMac;
+  String? get routerMac => _routerMac;
+
   void loadRouterInfo() async {
     _routerInfo = UiState.loading();
+    try {
+       _routerMac = await _repository.getCurrentMacAddress(); 
+    } catch (_) {}
+    
     notifyListeners();
     try {
       final info = await _repository.getRouterInfo();
       _routerInfo = UiState.success(info);
+      if (info.deviceMac.isNotEmpty) {
+        _routerMac = info.deviceMac;
+      }
     } catch (e) {
       _routerInfo = UiState.error(e.toString());
     }
@@ -81,7 +91,7 @@ class RouterViewModel extends ChangeNotifier {
     try {
       await _repository.setSsidName(ssidIndex, newSsid);
       _operationResult = UiState.success(true);
-      loadSsidName(ssidIndex); // Refresh
+      loadSsidName(ssidIndex);
     } catch (e) {
       _operationResult = UiState.error(e.toString());
     }

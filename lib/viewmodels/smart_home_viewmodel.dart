@@ -30,7 +30,6 @@ class SmartHomeViewModel extends ChangeNotifier {
         apiDevices.map((d) async {
            var device = await _repository.getDeviceConfig(d);
            
-           // Check for pending/expired timers
            final timerInfo = await _repository.getDeviceTimerInfo(device.nodeId);
            if (timerInfo != null) {
               final targetEpoch = timerInfo['targetEpoch'] as int;
@@ -38,15 +37,11 @@ class SmartHomeViewModel extends ChangeNotifier {
               final now = DateTime.now().millisecondsSinceEpoch;
               
               if (now >= targetEpoch) {
-                 // Timer expired while app was closed (or we missed it)
                  final isTurningOn = action.toLowerCase() == "on";
                  device = device.copyWith(isOn: isTurningOn);
-                 // Persist this new state
                  await _repository.saveDeviceConfig(device);
-                 // Clean up timer
                  await _repository.removeDeviceTimerInfo(device.nodeId);
               } else {
-                 // Timer is still pending, schedule the update
                  final remainingMs = targetEpoch - now;
                  if (remainingMs > 0) {
                     _scheduleLocalTimerUpdate(device.nodeId, remainingMs, action);
@@ -175,13 +170,10 @@ class SmartHomeViewModel extends ChangeNotifier {
         // Wait 23 seconds for the device to join
         await Future.delayed(const Duration(seconds: 23));
         
-        // Trigger status check
         await _repository.setBartonTemp("commission");
         
-        // Wait 1 second for status to update
         await Future.delayed(const Duration(seconds: 1));
         
-        // Get commissioning status
         final statusAndNode = await _repository.getBartonTemp();
         final parts = statusAndNode.split(',');
 
@@ -208,7 +200,6 @@ class SmartHomeViewModel extends ChangeNotifier {
       _operationResult = UiState.error(e.toString());
     }
     
-    // Always load devices at the end
     loadDevices();
     
     _isOperationLoading = false;
@@ -347,7 +338,6 @@ class SmartHomeViewModel extends ChangeNotifier {
 
   void _scheduleLocalTimerUpdate(String nodeId, int durationMs, String action) {
      Future.delayed(Duration(milliseconds: durationMs), () async {
-           // Check if we have devices loaded
            if (_devices.status == UiStatus.success) {
              final currentList = _devices.data!;
              final updatedList = <SmartDevice>[];
@@ -356,11 +346,8 @@ class SmartHomeViewModel extends ChangeNotifier {
              bool foundAndUpdated = false;
              for (var d in currentList) {
                if (d.nodeId == nodeId) {
-                 // Double check if timer is still valid (might have been removed or overridden)
-                 // But for simplicity we assume if it fires, it's valid, as we remove it on execution
                  final updatedDevice = d.copyWith(isOn: isTurningOn);
                  await _repository.saveDeviceConfig(updatedDevice);
-                 // Also clean up the timer info since it is now executed
                  await _repository.removeDeviceTimerInfo(nodeId);
                  updatedList.add(updatedDevice);
                  foundAndUpdated = true;
@@ -386,11 +373,9 @@ class SmartHomeViewModel extends ChangeNotifier {
       if (success) {
         _operationResult = UiState.success("Timer set successfully");
 
-        // Save timer info
         final targetEpoch = DateTime.now().millisecondsSinceEpoch + (timeInSeconds * 1000);
         await _repository.saveDeviceTimerInfo(nodeId, targetEpoch, action);
 
-        // Schedule local update
         _scheduleLocalTimerUpdate(nodeId, timeInSeconds * 1000, action);
 
       } else {
