@@ -229,6 +229,35 @@ class SmartHomeRepository {
     final key = "device_config_$nodeId";
     await prefs.remove(key);
   }
+
+  Future<void> saveDeviceTimerInfo(String nodeId, int targetEpoch, String action) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = "device_timer_$nodeId";
+    // Format: targetEpoch,action
+    await prefs.setString(key, "$targetEpoch,$action");
+  }
+
+  Future<Map<String, dynamic>?> getDeviceTimerInfo(String nodeId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = "device_timer_$nodeId";
+    final value = prefs.getString(key);
+    if (value != null && value.isNotEmpty) {
+      final parts = value.split(',');
+      if (parts.length >= 2) {
+        return {
+          'targetEpoch': int.tryParse(parts[0]) ?? 0,
+          'action': parts[1],
+        };
+      }
+    }
+    return null;
+  }
+
+  Future<void> removeDeviceTimerInfo(String nodeId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = "device_timer_$nodeId";
+    await prefs.remove(key);
+  }
 }
 
 extension ListExtension<T> on List<T> {

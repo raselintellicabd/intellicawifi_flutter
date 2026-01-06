@@ -27,7 +27,34 @@ class SmartHomeViewModel extends ChangeNotifier {
     try {
       final apiDevices = await _repository.listDevices();
       final loadedDevices = await Future.wait(
-        apiDevices.map((d) => _repository.getDeviceConfig(d))
+        apiDevices.map((d) async {
+           var device = await _repository.getDeviceConfig(d);
+           
+           // Check for pending/expired timers
+           final timerInfo = await _repository.getDeviceTimerInfo(device.nodeId);
+           if (timerInfo != null) {
+              final targetEpoch = timerInfo['targetEpoch'] as int;
+              final action = timerInfo['action'] as String;
+              final now = DateTime.now().millisecondsSinceEpoch;
+              
+              if (now >= targetEpoch) {
+                 // Timer expired while app was closed (or we missed it)
+                 final isTurningOn = action.toLowerCase() == "on";
+                 device = device.copyWith(isOn: isTurningOn);
+                 // Persist this new state
+                 await _repository.saveDeviceConfig(device);
+                 // Clean up timer
+                 await _repository.removeDeviceTimerInfo(device.nodeId);
+              } else {
+                 // Timer is still pending, schedule the update
+                 final remainingMs = targetEpoch - now;
+                 if (remainingMs > 0) {
+                    _scheduleLocalTimerUpdate(device.nodeId, remainingMs, action);
+                 }
+              }
+           }
+           return device;
+        })
       );
       _devices = UiState.success(loadedDevices);
     } catch (e) {
@@ -155,25 +182,22 @@ class SmartHomeViewModel extends ChangeNotifier {
         await Future.delayed(const Duration(seconds: 1));
         
         // Get commissioning status
-        final status = await _repository.getBartonTemp();
-        if (status == "CommissionedSuccessfully") {
-           
-           // Fetch Light Class which now returns the single last added node ID
-           try {
-             final newId = await _repository.getDeviceLightClass();
-             
-             if (newId.isNotEmpty && newId != "N/A") {
-               // Set Label
-               await _repository.setDeviceLabel(newId.trim(), deviceLabel);
-               _operationResult = UiState.success("Device commissioned and labeled as $deviceLabel");
-             } else {
-               _operationResult = UiState.success("Device commissioned successfully (Label pending - ID not found)");
-             }
-           } catch (e) {
-             print("Error setting label: $e");
-             _operationResult = UiState.success("Device commissioned successfully");
-           }
+        final statusAndNode = await _repository.getBartonTemp();
+        final parts = statusAndNode.split(',');
 
+        final String status = parts.isNotEmpty ? parts[0] : '';
+        final String nodeId = parts.length > 1 ? parts[1] : '';
+
+        print('status: $status');
+        print('nodeId: $nodeId');
+
+        if (status == "commissionedsuccessfully") {
+          if (nodeId.isNotEmpty && nodeId != "N/A") {
+            await _repository.setDeviceLabel(nodeId, deviceLabel);
+            _operationResult = UiState.success("Device commissioned and labeled as $deviceLabel");
+          } else {
+            _operationResult = UiState.success("Device commissioned successfully (Label pending - ID not found)");
+          }
         } else {
            _operationResult = UiState.error("Failed to commission device");
         }
@@ -321,6 +345,38 @@ class SmartHomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _scheduleLocalTimerUpdate(String nodeId, int durationMs, String action) {
+     Future.delayed(Duration(milliseconds: durationMs), () async {
+           // Check if we have devices loaded
+           if (_devices.status == UiStatus.success) {
+             final currentList = _devices.data!;
+             final updatedList = <SmartDevice>[];
+             final isTurningOn = action.toLowerCase() == "on";
+             
+             bool foundAndUpdated = false;
+             for (var d in currentList) {
+               if (d.nodeId == nodeId) {
+                 // Double check if timer is still valid (might have been removed or overridden)
+                 // But for simplicity we assume if it fires, it's valid, as we remove it on execution
+                 final updatedDevice = d.copyWith(isOn: isTurningOn);
+                 await _repository.saveDeviceConfig(updatedDevice);
+                 // Also clean up the timer info since it is now executed
+                 await _repository.removeDeviceTimerInfo(nodeId);
+                 updatedList.add(updatedDevice);
+                 foundAndUpdated = true;
+               } else {
+                 updatedList.add(d);
+               }
+             }
+
+             if (foundAndUpdated) {
+                _devices = UiState.success(updatedList);
+                notifyListeners();
+             }
+           }
+    });
+  }
+
   Future<void> setDeviceTimer(String nodeId, int timeInSeconds, String action) async {
     _isOperationLoading = true;
     notifyListeners();
@@ -329,6 +385,14 @@ class SmartHomeViewModel extends ChangeNotifier {
       final success = await _repository.setDeviceTimer(nodeId, timeInSeconds, action);
       if (success) {
         _operationResult = UiState.success("Timer set successfully");
+
+        // Save timer info
+        final targetEpoch = DateTime.now().millisecondsSinceEpoch + (timeInSeconds * 1000);
+        await _repository.saveDeviceTimerInfo(nodeId, targetEpoch, action);
+
+        // Schedule local update
+        _scheduleLocalTimerUpdate(nodeId, timeInSeconds * 1000, action);
+
       } else {
         _operationResult = UiState.error("Failed to set timer");
       }
